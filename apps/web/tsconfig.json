@@ -18,7 +18,9 @@
       "@language-arcade/shared": [
         "../../packages/shared/src/index.ts"
       ]
-    }
+    },
+    "allowJs": true,
+    "isolatedModules": true
   },
   "include": [
     "next-env.d.ts",
