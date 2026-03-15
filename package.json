@@ -1,0 +1,22 @@
+{
+  "name": "language-arcade",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm run dev -w @language-arcade/api\" \"npm run dev -w @language-arcade/web\"",
+    "build": "npm run build -w @language-arcade/shared && npm run build -w @language-arcade/api && npm run build -w @language-arcade/web",
+    "test": "npm run test -w @language-arcade/shared && npm run test -w @language-arcade/api && npm run test -w @language-arcade/web",
+    "db:migrate": "npm run db:migrate -w @language-arcade/api",
+    "db:seed": "npm run db:seed -w @language-arcade/api",
+    "audio:generate": "npm run audio:generate -w @language-arcade/api"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.2"
+  }
+}
