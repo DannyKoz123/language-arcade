@@ -46,6 +46,42 @@ const languages: LanguageSummary[] = [
     region: "East Asia",
     mainCountries: ["Japan"],
     enabled: true
+  },
+  {
+    isoCode: "kor",
+    commonName: "Korean",
+    nativeName: "Hanguk-eo",
+    family: ["Koreanic"],
+    region: "East Asia",
+    mainCountries: ["South Korea"],
+    enabled: true
+  },
+  {
+    isoCode: "tha",
+    commonName: "Thai",
+    nativeName: "Thai",
+    family: ["Kra-Dai"],
+    region: "Southeast Asia",
+    mainCountries: ["Thailand"],
+    enabled: true
+  },
+  {
+    isoCode: "vie",
+    commonName: "Vietnamese",
+    nativeName: "Tieng Viet",
+    family: ["Austroasiatic"],
+    region: "Southeast Asia",
+    mainCountries: ["Vietnam"],
+    enabled: true
+  },
+  {
+    isoCode: "ind",
+    commonName: "Indonesian",
+    nativeName: "Bahasa Indonesia",
+    family: ["Austronesian"],
+    region: "Southeast Asia",
+    mainCountries: ["Indonesia"],
+    enabled: true
   }
 ];
 
