@@ -7,11 +7,11 @@ import {
   ProfileResponse
 } from "@language-arcade/shared";
 
-const API_URL =
+export const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:3001";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     credentials: "include",
     headers: {
