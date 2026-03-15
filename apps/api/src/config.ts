@@ -1,7 +1,10 @@
+import { resolve } from "node:path";
+
 import { config as loadEnv } from "dotenv";
 import { z } from "zod";
 
-loadEnv();
+loadEnv({ path: resolve(process.cwd(), "../../.env") });
+loadEnv({ path: resolve(process.cwd(), ".env") });
 
 const configSchema = z.object({
   DATABASE_URL: z.string().min(1),
