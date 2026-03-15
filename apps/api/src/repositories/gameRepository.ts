@@ -436,7 +436,7 @@ export class GameRepository {
       await this.pool.query(
         `update run_rounds
          set family_region_used = true,
-             hint_types = (hint_types || '"family_region"'::jsonb)
+             hint_types = (hint_types || '["family_region"]'::jsonb)
          where id = $1 and family_region_used = false`,
         [roundId]
       );
@@ -446,7 +446,7 @@ export class GameRepository {
     await this.pool.query(
       `update run_rounds
        set longer_clip_used = true,
-           hint_types = (hint_types || '"longer_clip"'::jsonb)
+           hint_types = (hint_types || '["longer_clip"]'::jsonb)
        where id = $1 and longer_clip_used = false`,
       [roundId]
     );

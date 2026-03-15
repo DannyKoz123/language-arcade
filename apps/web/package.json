@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@language-arcade/shared": "*",
-    "next": "15.2.1",
+    "next": "15.5.12",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "zod": "^3.24.2"
