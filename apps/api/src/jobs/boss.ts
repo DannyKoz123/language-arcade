@@ -15,7 +15,8 @@ export class BossService {
   async start(): Promise<void> {
     await this.boss.start();
     await this.boss.work("content.publish", async (job) => {
-      const versionName = String(job.data.versionName);
+      const payload = Array.isArray(job) ? job[0]?.data : job.data;
+      const versionName = String(payload?.versionName);
       await this.gameService.publishContentVersion(versionName);
     });
   }

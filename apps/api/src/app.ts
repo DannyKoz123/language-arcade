@@ -41,15 +41,16 @@ export async function createApp() {
     await bossService.stop();
   });
 
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error: unknown, _request, reply) => {
+    const message = error instanceof Error ? error.message : "Unknown error";
     const statusCode =
-      error.message === "Unauthenticated"
+      message === "Unauthenticated"
         ? 401
-        : error.message === "Forbidden"
+        : message === "Forbidden"
           ? 403
           : 400;
     reply.status(statusCode).send({
-      error: error.message
+      error: message
     });
   });
 

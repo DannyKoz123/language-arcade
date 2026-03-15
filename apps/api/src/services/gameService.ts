@@ -5,6 +5,7 @@ import {
   GAME_CONSTANTS,
   HintResponse,
   HintType,
+  LeaderboardEntry,
   ProfileResponse,
   RoundPayload,
   RoundReveal,
@@ -18,7 +19,6 @@ import { hashSessionToken } from "../lib/security.js";
 import {
   CatalogSnapshot,
   GameRepository,
-  LeaderboardEntry,
   PlayerSummary,
   RunRecord,
   RunRoundRecord
