@@ -1,3 +1,5 @@
+import { PoolClient } from "pg";
+
 import {
   ActiveRunResponse,
   AnswerResponse,
@@ -460,7 +462,7 @@ export class GameService {
   private async requireRun(
     playerId: string,
     runId: string,
-    options: { executor?: Parameters<GameRepository["getRun"]>[1]["executor"]; lock?: boolean } = {}
+    options: { executor?: PoolClient; lock?: boolean } = {}
   ): Promise<RunRecord> {
     const run = await this.repository.getRun(runId, options);
     if (!run || run.playerId !== playerId) {
@@ -493,11 +495,7 @@ export class GameService {
   private async abandonBrokenRun(
     run: RunRecord,
     playerId: string,
-    client: Parameters<GameRepository["withTransaction"]>[0] extends (
-      client: infer T
-    ) => Promise<unknown>
-      ? T
-      : never
+    client: PoolClient
   ): Promise<void> {
     await this.repository.updateRunProgress(
       {

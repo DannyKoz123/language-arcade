@@ -11,3 +11,12 @@ Original prompt: Improve the existing `language-arcade` repo in place by inspect
   - Add typed API errors and stronger route validation.
   - Add active-run lookup/resume behavior and safer run state transitions.
   - Improve the play client for resume-on-refresh, clearer feedback, and better accessibility.
+
+- Backend pass in progress:
+  - Added typed API errors and Zod-aware error responses.
+  - Made run creation resume-aware and added `GET /v1/runs/active`.
+  - Reworked run answer/hint flows to operate inside transactions with row locking and stale-state conflicts.
+  - Added recovery for broken active runs by marking them abandoned instead of leaving the player stuck.
+- Frontend pass in progress:
+  - Added active-run restoration on load and conflict-driven resync.
+  - Surfaced hint clue state, run progress, and score breakdown feedback in the play UI.
