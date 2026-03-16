@@ -20,3 +20,11 @@ Original prompt: Improve the existing `language-arcade` repo in place by inspect
 - Frontend pass in progress:
   - Added active-run restoration on load and conflict-driven resync.
   - Surfaced hint clue state, run progress, and score breakdown feedback in the play UI.
+
+- Verification:
+  - `npm.cmd run test` passes across `packages/shared`, `apps/api`, and `apps/web`.
+  - `npm.cmd run build` passes across the full workspace.
+  - Docker-backed local DB flow works: `docker compose up -d`, `npm.cmd run db:migrate`, and `npm.cmd run db:seed`.
+  - Live API checks passed for `/health`, `/v1/bootstrap`, idempotent `POST /v1/runs`, and `GET /v1/runs/active`.
+- Runtime note:
+  - The Playwright skill client could not run because the local workspace does not have the `playwright` package installed, and I avoided adding a heavyweight dependency just for a one-off smoke test.
