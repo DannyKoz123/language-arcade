@@ -1,4 +1,5 @@
 import {
+  ActiveRunResponse,
   AnswerResponse,
   BootstrapResponse,
   CreateRunResponse,
@@ -10,20 +11,41 @@ import {
 export const apiBaseUrl =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:3001";
 
+interface ErrorPayload {
+  error?: string;
+  code?: string;
+}
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
       ...(init?.headers ?? {})
     },
     cache: "no-store"
   });
 
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(payload?.error ?? `Request failed with ${response.status}`);
+    const payload = (await response.json().catch(() => null)) as ErrorPayload | null;
+    throw new ApiError(
+      payload?.error ?? `Request failed with ${response.status}`,
+      response.status,
+      payload?.code
+    );
   }
 
   if (response.status === 204) {
@@ -42,6 +64,10 @@ export async function ensureGuestSession() {
 
 export async function fetchBootstrap() {
   return request<BootstrapResponse>("/v1/bootstrap");
+}
+
+export async function fetchActiveRun() {
+  return request<ActiveRunResponse>("/v1/runs/active");
 }
 
 export async function createRun() {

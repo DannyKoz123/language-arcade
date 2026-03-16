@@ -4,10 +4,12 @@ import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import Fastify from "fastify";
+import { ZodError } from "zod";
 
 import { config } from "./config.js";
 import { BossService } from "./jobs/boss.js";
 import { getPool } from "./db/pool.js";
+import { AppError } from "./lib/errors.js";
 import { GameRepository } from "./repositories/gameRepository.js";
 import { registerInternalRoutes } from "./routes/internalRoutes.js";
 import { registerPublicRoutes } from "./routes/publicRoutes.js";
@@ -41,16 +43,28 @@ export async function createApp() {
     await bossService.stop();
   });
 
-  app.setErrorHandler((error: unknown, _request, reply) => {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    const statusCode =
-      message === "Unauthenticated"
-        ? 401
-        : message === "Forbidden"
-          ? 403
-          : 400;
-    reply.status(statusCode).send({
-      error: message
+  app.setErrorHandler((error: unknown, request, reply) => {
+    if (error instanceof ZodError) {
+      reply.status(400).send({
+        error: "Request validation failed.",
+        code: "VALIDATION_ERROR",
+        details: error.flatten()
+      });
+      return;
+    }
+
+    if (error instanceof AppError) {
+      reply.status(error.statusCode).send({
+        error: error.message,
+        code: error.code
+      });
+      return;
+    }
+
+    request.log.error({ err: error }, "Unhandled request error");
+    reply.status(500).send({
+      error: "Internal server error.",
+      code: "INTERNAL_SERVER_ERROR"
     });
   });
 
