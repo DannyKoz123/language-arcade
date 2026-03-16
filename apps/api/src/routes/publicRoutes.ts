@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { FastifyInstance } from "fastify";
 
+import { UnauthorizedError } from "../lib/errors.js";
 import { createSessionToken } from "../lib/security.js";
 import { GameService } from "../services/gameService.js";
 
 const answerBody = z.object({
   roundId: z.string().uuid(),
-  guessIsoCode: z.string().min(2),
-  elapsedMs: z.number().int().nonnegative().optional()
+  guessIsoCode: z.string().trim().min(2).max(12)
 });
 
 const hintBody = z.object({
@@ -17,6 +17,14 @@ const hintBody = z.object({
 
 const displayNameBody = z.object({
   displayName: z.string().trim().min(3).max(20)
+});
+
+const runParams = z.object({
+  runId: z.string().uuid()
+});
+
+const leaderboardQuery = z.object({
+  window: z.enum(["weekly", "all_time"]).default("weekly")
 });
 
 export async function registerPublicRoutes(
@@ -45,20 +53,26 @@ export async function registerPublicRoutes(
 
   app.get("/v1/bootstrap", async () => gameService.bootstrap());
 
+  app.get("/v1/runs/active", async (request) => {
+    const player = await requirePlayer(gameService, request.cookies.guest_session);
+    return gameService.getActiveRun(player);
+  });
+
   app.post("/v1/runs", async (request, reply) => {
     const player = await requirePlayer(gameService, request.cookies.guest_session);
     const response = await gameService.createRun(player);
-    reply.code(201);
+    reply.code(response.resumed ? 200 : 201);
     return response;
   });
 
   app.post("/v1/runs/:runId/answers", async (request) => {
     const player = await requirePlayer(gameService, request.cookies.guest_session);
+    const params = runParams.parse(request.params);
     const body = answerBody.parse(request.body);
 
     return gameService.answerRound({
       player,
-      runId: (request.params as { runId: string }).runId,
+      runId: params.runId,
       roundId: body.roundId,
       guessIsoCode: body.guessIsoCode
     });
@@ -66,11 +80,12 @@ export async function registerPublicRoutes(
 
   app.post("/v1/runs/:runId/hints", async (request) => {
     const player = await requirePlayer(gameService, request.cookies.guest_session);
+    const params = runParams.parse(request.params);
     const body = hintBody.parse(request.body);
 
     return gameService.applyHint({
       player,
-      runId: (request.params as { runId: string }).runId,
+      runId: params.runId,
       roundId: body.roundId,
       hintType: body.hintType
     });
@@ -89,11 +104,7 @@ export async function registerPublicRoutes(
   });
 
   app.get("/v1/leaderboards/arcade", async (request) => {
-    const query = z
-      .object({
-        window: z.enum(["weekly", "all_time"]).default("weekly")
-      })
-      .parse(request.query);
+    const query = leaderboardQuery.parse(request.query);
 
     return {
       entries: await gameService.getLeaderboard(query.window)
@@ -107,7 +118,7 @@ async function requirePlayer(
 ) {
   const player = await gameService.resolvePlayer(sessionToken);
   if (!player) {
-    throw new Error("Unauthenticated");
+    throw new UnauthorizedError();
   }
 
   return player;

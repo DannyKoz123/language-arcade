@@ -3,10 +3,16 @@ import { z } from "zod";
 
 import { config } from "../config.js";
 import { BossService } from "../jobs/boss.js";
+import { ForbiddenError } from "../lib/errors.js";
+import { tokensMatch } from "../lib/security.js";
 import { GameService } from "../services/gameService.js";
 
 const publishBody = z.object({
-  versionName: z.string().min(1)
+  versionName: z.string().trim().min(1)
+});
+
+const clipParams = z.object({
+  clipId: z.string().uuid()
 });
 
 export async function registerInternalRoutes(
@@ -15,8 +21,8 @@ export async function registerInternalRoutes(
   bossService: BossService
 ): Promise<void> {
   app.addHook("preHandler", async (request) => {
-    if (request.headers["x-admin-token"] !== config.ADMIN_TOKEN) {
-      throw new Error("Forbidden");
+    if (!tokensMatch(config.ADMIN_TOKEN, request.headers["x-admin-token"] as string | undefined)) {
+      throw new ForbiddenError();
     }
   });
 
@@ -28,7 +34,8 @@ export async function registerInternalRoutes(
   });
 
   app.post("/internal/content/clips/:clipId/disable", async (request, reply) => {
-    await gameService.disableClip((request.params as { clipId: string }).clipId);
+    const params = clipParams.parse(request.params);
+    await gameService.disableClip(params.clipId);
     reply.code(204);
   });
 }
