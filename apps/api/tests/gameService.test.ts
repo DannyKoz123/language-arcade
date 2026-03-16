@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { ClipSummary, ConfusionEdge, LanguageSummary, RoundOption } from "@language-arcade/shared";
+import {
+  ClipSummary,
+  ConfusionEdge,
+  LanguageSummary,
+  RoundOption
+} from "@language-arcade/shared";
 
 import { GameService } from "../src/services/gameService.js";
 
@@ -34,6 +39,35 @@ const confusionEdges: ConfusionEdge[] = [
   { sourceIsoCode: "deu", targetIsoCode: "eng", weight: 0.95 }
 ];
 
+function makeRun(overrides: Partial<{
+  id: string;
+  playerId: string;
+  status: "active" | "completed" | "abandoned";
+  score: number;
+  streak: number;
+  livesRemaining: number;
+  currentRoundNumber: number;
+  completedRounds: number;
+  seasonId: string;
+  createdAt: string;
+  finishedAt: string | null;
+}> = {}) {
+  return {
+    id: "33333333-3333-3333-3333-333333333333",
+    playerId: "player-1",
+    status: "active" as const,
+    score: 0,
+    streak: 0,
+    livesRemaining: 3,
+    currentRoundNumber: 1,
+    completedRounds: 0,
+    seasonId: "season-1",
+    createdAt: new Date().toISOString(),
+    finishedAt: null,
+    ...overrides
+  };
+}
+
 function makeRound(roundNumber: number, languageIsoCode: string, clipId: string, options: RoundOption[]) {
   return {
     id: `22222222-2222-2222-2222-${String(roundNumber).padStart(12, "0")}`,
@@ -41,7 +75,7 @@ function makeRound(roundNumber: number, languageIsoCode: string, clipId: string,
     roundNumber,
     languageIsoCode,
     clipId,
-    difficulty: roundNumber >= 5 ? "medium" : "easy",
+    difficulty: roundNumber >= 9 ? "hard" : roundNumber >= 5 ? "medium" : "easy",
     options,
     hintTypes: [],
     familyRegionUsed: false,
@@ -54,34 +88,44 @@ function makeRound(roundNumber: number, languageIsoCode: string, clipId: string,
   } as const;
 }
 
+function makeRepositoryMock(overrides: Record<string, unknown> = {}) {
+  return {
+    withTransaction: vi.fn().mockImplementation(async (callback: (client: unknown) => Promise<unknown>) =>
+      callback({})
+    ),
+    lockPlayer: vi.fn(),
+    getLatestActiveRunForPlayer: vi.fn().mockResolvedValue(null),
+    getActiveSeason: vi.fn().mockResolvedValue({
+      id: "season-1",
+      name: "Launch Season",
+      startedAt: new Date().toISOString(),
+      endsAt: null
+    }),
+    createRun: vi.fn().mockResolvedValue(makeRun({ currentRoundNumber: 0 })),
+    insertRunRound: vi.fn().mockImplementation(async (input: { roundNumber: number; languageIsoCode: string; clipId: string; options: RoundOption[] }) =>
+      makeRound(input.roundNumber, input.languageIsoCode, input.clipId, input.options)
+    ),
+    updateRunProgress: vi.fn(),
+    logEvent: vi.fn(),
+    getRun: vi.fn().mockResolvedValue(makeRun()),
+    listRunRounds: vi.fn().mockResolvedValue([]),
+    markRoundAnswered: vi.fn(),
+    getRunRound: vi.fn(),
+    applyHint: vi.fn(),
+    getLanguageByIsoCode: vi.fn(),
+    getClipById: vi.fn(),
+    getProfile: vi.fn(),
+    getLeaderboard: vi.fn(),
+    upsertDisplayName: vi.fn(),
+    publishContentVersion: vi.fn(),
+    disableClip: vi.fn(),
+    ...overrides
+  };
+}
+
 describe("GameService", () => {
   it("creates a run and returns a first round payload", async () => {
-    const repository = {
-      getActiveSeason: vi.fn().mockResolvedValue({
-        id: "season-1",
-        name: "Launch Season",
-        startedAt: new Date().toISOString(),
-        endsAt: null
-      }),
-      createRun: vi.fn().mockResolvedValue({
-        id: "run-1",
-        playerId: "player-1",
-        status: "active",
-        score: 0,
-        streak: 0,
-        livesRemaining: 3,
-        currentRoundNumber: 0,
-        completedRounds: 0,
-        seasonId: "season-1",
-        createdAt: new Date().toISOString(),
-        finishedAt: null
-      }),
-      insertRunRound: vi.fn().mockImplementation(async (input: { roundNumber: number; languageIsoCode: string; clipId: string; options: RoundOption[] }) =>
-        makeRound(input.roundNumber, input.languageIsoCode, input.clipId, input.options)
-      ),
-      updateRunProgress: vi.fn(),
-      logEvent: vi.fn()
-    };
+    const repository = makeRepositoryMock();
     const catalogService = {
       getSnapshot: vi.fn().mockResolvedValue({ languages, clips, confusionEdges }),
       invalidate: vi.fn()
@@ -94,9 +138,39 @@ describe("GameService", () => {
       guest: true
     });
 
-    expect(response.runId).toBe("run-1");
+    expect(response.resumed).toBe(false);
+    expect(response.runId).toBe("33333333-3333-3333-3333-333333333333");
     expect(response.round.roundNumber).toBe(1);
     expect(response.round.options).toHaveLength(4);
+    expect(response.round.hintState.familyRegionClue).toBeNull();
+  });
+
+  it("resumes the latest active run instead of creating a duplicate", async () => {
+    const firstRoundOptions = languages.slice(0, 4).map((language) => ({
+      isoCode: language.isoCode,
+      label: language.commonName
+    }));
+    const repository = makeRepositoryMock({
+      getLatestActiveRunForPlayer: vi.fn().mockResolvedValue(makeRun()),
+      listRunRounds: vi.fn().mockResolvedValue([
+        makeRound(1, "eng", clips[0].id, firstRoundOptions)
+      ])
+    });
+    const catalogService = {
+      getSnapshot: vi.fn().mockResolvedValue({ languages, clips, confusionEdges }),
+      invalidate: vi.fn()
+    };
+    const service = new GameService(repository as never, catalogService as never);
+
+    const response = await service.createRun({
+      id: "player-1",
+      displayName: null,
+      guest: true
+    });
+
+    expect(response.resumed).toBe(true);
+    expect(response.round.roundNumber).toBe(1);
+    expect(repository.createRun).not.toHaveBeenCalled();
   });
 
   it("answers a round, updates score, and issues the next round", async () => {
@@ -104,43 +178,27 @@ describe("GameService", () => {
       isoCode: language.isoCode,
       label: language.commonName
     }));
-    const run = {
-      id: "33333333-3333-3333-3333-333333333333",
-      playerId: "player-1",
-      status: "active",
-      score: 0,
-      streak: 0,
-      livesRemaining: 3,
-      currentRoundNumber: 1,
-      completedRounds: 0,
-      seasonId: "season-1",
-      createdAt: new Date().toISOString(),
-      finishedAt: null
-    };
+    const run = makeRun();
     const firstRound = makeRound(1, "eng", clips[0].id, firstRoundOptions);
-
-    const repository = {
-      getRun: vi.fn().mockResolvedValue(run),
-      listRunRounds: vi
-        .fn()
-        .mockResolvedValueOnce([firstRound])
-        .mockResolvedValueOnce([
-          firstRound,
-          makeRound(
-            2,
-            "jpn",
-            clips.find((clip) => clip.languageIsoCode === "jpn")!.id,
-            languages.slice(2, 6).map((language) => ({ isoCode: language.isoCode, label: language.commonName }))
-          )
-        ]),
-      markRoundAnswered: vi.fn(),
-      insertRunRound: vi.fn().mockImplementation(async (input: { roundNumber: number; languageIsoCode: string; clipId: string; options: RoundOption[] }) =>
-        makeRound(input.roundNumber, input.languageIsoCode, input.clipId, input.options)
-      ),
-      updateRunProgress: vi.fn(),
-      logEvent: vi.fn(),
-      getLanguageByIsoCode: vi.fn()
+    const answeredFirstRound = {
+      ...firstRound,
+      answeredAt: new Date().toISOString(),
+      answerIsoCode: "eng",
+      correct: true,
+      scoreDelta: {
+        difficultyBase: 100,
+        speedBonus: 48,
+        streakMultiplier: 1,
+        hintPenalty: 0,
+        total: 148
+      }
     };
+
+    const repository = makeRepositoryMock({
+      getRun: vi.fn().mockResolvedValue(run),
+      listRunRounds: vi.fn().mockResolvedValue([firstRound]),
+      markRoundAnswered: vi.fn().mockResolvedValue(answeredFirstRound)
+    });
     const catalogService = {
       getSnapshot: vi.fn().mockResolvedValue({ languages, clips, confusionEdges }),
       invalidate: vi.fn()
@@ -158,5 +216,6 @@ describe("GameService", () => {
     expect(response.totalScore).toBeGreaterThan(0);
     expect(response.gameOver).toBe(false);
     expect(response.round?.roundNumber).toBe(2);
+    expect(repository.insertRunRound).toHaveBeenCalledTimes(1);
   });
 });
