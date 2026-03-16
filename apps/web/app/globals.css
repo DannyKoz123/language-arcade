@@ -215,6 +215,22 @@ button {
   border: 1px solid var(--line);
 }
 
+.run-progress-card {
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--line);
+}
+
+.run-progress-copy {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: var(--ink-soft);
+}
+
 .progress {
   height: 10px;
   border-radius: 999px;
@@ -226,6 +242,10 @@ button {
   height: 100%;
   background: linear-gradient(90deg, #1a7195, #ca4e2a);
   transition: width 120ms linear;
+}
+
+.progress-run {
+  height: 12px;
 }
 
 .option-grid {
@@ -267,6 +287,34 @@ button {
   border-radius: 22px;
   background: rgba(255, 252, 247, 0.94);
   border: 1px solid var(--line);
+}
+
+.hint-panel {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(202, 78, 42, 0.08);
+  border: 1px solid rgba(202, 78, 42, 0.18);
+}
+
+.message {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+}
+
+.message-info {
+  background: rgba(26, 113, 149, 0.08);
+  border-color: rgba(26, 113, 149, 0.18);
+}
+
+.message-error {
+  background: rgba(202, 78, 42, 0.1);
+  border-color: rgba(143, 46, 23, 0.2);
+  color: var(--accent-strong);
 }
 
 .metric-table {
@@ -340,5 +388,9 @@ button {
   .option-grid,
   .stat-grid {
     grid-template-columns: 1fr;
+  }
+
+  .run-progress-copy {
+    flex-direction: column;
   }
 }
