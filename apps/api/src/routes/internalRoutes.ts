@@ -20,22 +20,27 @@ export async function registerInternalRoutes(
   gameService: GameService,
   bossService: BossService
 ): Promise<void> {
-  app.addHook("preHandler", async (request) => {
-    if (!tokensMatch(config.ADMIN_TOKEN, request.headers["x-admin-token"] as string | undefined)) {
-      throw new ForbiddenError();
-    }
-  });
+  await app.register(async (internalApp) => {
+    internalApp.addHook("preHandler", async (request) => {
+      const headerValue = request.headers["x-admin-token"];
+      const receivedToken = Array.isArray(headerValue) ? headerValue[0] : headerValue;
 
-  app.post("/internal/content/publish", async (request, reply) => {
-    const body = publishBody.parse(request.body);
-    await bossService.queuePublish(body.versionName);
-    reply.code(202);
-    return { queued: true };
-  });
+      if (!tokensMatch(config.ADMIN_TOKEN, receivedToken)) {
+        throw new ForbiddenError();
+      }
+    });
 
-  app.post("/internal/content/clips/:clipId/disable", async (request, reply) => {
-    const params = clipParams.parse(request.params);
-    await gameService.disableClip(params.clipId);
-    reply.code(204);
+    internalApp.post("/internal/content/publish", async (request, reply) => {
+      const body = publishBody.parse(request.body);
+      await bossService.queuePublish(body.versionName);
+      reply.code(202);
+      return { queued: true };
+    });
+
+    internalApp.post("/internal/content/clips/:clipId/disable", async (request, reply) => {
+      const params = clipParams.parse(request.params);
+      await gameService.disableClip(params.clipId);
+      reply.code(204);
+    });
   });
 }
