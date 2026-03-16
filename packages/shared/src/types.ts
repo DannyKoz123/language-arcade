@@ -65,6 +65,10 @@ export interface RoundPayload {
   hintState: {
     familyRegionUsed: boolean;
     longerClipUsed: boolean;
+    familyRegionClue: {
+      region: string;
+      family: string[];
+    } | null;
   };
   clip: {
     previewUrl: string;
@@ -76,8 +80,16 @@ export interface RoundPayload {
 }
 
 export interface CreateRunResponse {
+  resumed: boolean;
   runId: string;
   round: RoundPayload;
+}
+
+export interface ActiveRunResponse {
+  run: {
+    runId: string;
+    round: RoundPayload;
+  } | null;
 }
 
 export interface AnswerResponse {
